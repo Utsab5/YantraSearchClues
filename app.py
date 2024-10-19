@@ -23,17 +23,20 @@ total_rounds = 5
 
 # Assigned clues {team_id: {round_num: clue_id}}
 assigned_clues = {team_id: [] for team_id in range(1, total_teams + 1)}
+current_round = len(assigned_clues[team_id]) 
 
 # Flag to toggle re-registration permission
 restrict_reregistration = True
+session.clear()
 
 @app.route('/')
 def home():
+    
     team_id = session.get('team_id')
     if team_id is None:
         return redirect(url_for('register'))
 
-    current_round = len(assigned_clues[team_id]) + 1
+    
 
     # If all rounds are completed
     if current_round > total_rounds:
