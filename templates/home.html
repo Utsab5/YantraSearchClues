@@ -66,10 +66,23 @@
         <h1>Welcome, Team {{ team_id }}!</h1>
 
         <!-- Display the current round or 'Begin Round' -->
-        <h2>Round: {{ current_round }}</h2>
+        <h2>
+            {% if current_round == 0 %}
+                Begin Round
+            {% else %}
+                Round: {{ current_round }}
+            {% endif %}
+        </h2>
 
         <!-- Display the clue -->
         <h3>Your Clue: {{ clue }}</h3>
+
+        <!-- If no clue is assigned, show a "Get Clue" button -->
+        {% if clue == "No clue yet" %}
+        <form action="{{ url_for('get_clue') }}" method="POST">
+            <button type="submit">Get Your Clue</button>
+        </form>
+        {% endif %}
 
         <!-- Display the form to submit the answer only if a clue is assigned -->
         {% if clue and clue != "No clue yet" %}
