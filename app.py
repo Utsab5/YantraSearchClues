@@ -23,7 +23,7 @@ total_rounds = 5
 
 # Assigned clues {team_id: {round_num: clue_id}}
 assigned_clues = {team_id: [] for team_id in range(1, total_teams + 1)}
-current_round = len(assigned_clues[team_id]) 
+current_round = 0
 
 # Flag to toggle re-registration permission
 restrict_reregistration = True
@@ -36,7 +36,7 @@ def home():
     if team_id is None:
         return redirect(url_for('register'))
 
-    
+    # current_round = len(assigned_clues[team_id]) 
 
     # If all rounds are completed
     if current_round > total_rounds:
