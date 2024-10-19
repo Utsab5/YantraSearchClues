@@ -38,10 +38,15 @@ def home():
     clue = session.get('clue')  # Get the current clue from session
     message = session.get('message', None)  # Feedback message
 
+    # Initialize current_round based on how many clues have been assigned to this team
+    current_round = len(assigned_clues[team_id])
+
+    # If no clue is assigned, set the current round correctly before clue retrieval
     if not clue:
-        current_round = len(assigned_clues[team_id])  # Show the correct round before clue retrieval
+        current_round = len(assigned_clues[team_id])
 
     return render_template('home.html', clue=clue, team_id=team_id, current_round=current_round, message=message)
+
 
 @app.route('/register', methods=['GET', 'POST'])
 def register():
