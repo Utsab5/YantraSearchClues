@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Yantra Search</title>
+    <style>
+        body { font-family: Arial, sans-serif; }
+        .button { padding: 10px 20px; margin: 10px; }
+    </style>
+</head>
+<body>
+    <h1>Welcome to Yantra Search!</h1>
+    
+    {% if clue %}
+        <h2>Your Clue:</h2>
+        <p>{{ clue }}</p>
+        <p><strong>Your Clue ID:</strong> {{ clue_id }}</p>
+    {% else %}
+        <h2>No clue yet!</h2>
+    {% endif %}
+
+    <form action="/get_clue" method="post">
+        <button class="button" type="submit">Get Clue</button>
+    </form>
+
+    <form action="/reset" method="post">
+        <button class="button" type="submit">Reset</button>
+    </form>
+</body>
+</html>

@@ -1,108 +1,45 @@
-from flask import Flask, request, render_template_string
-from collections import deque
+from flask import Flask, render_template, request, redirect, url_for, session
+import random
 
 app = Flask(__name__)
+app.secret_key = 'your_secret_key'  # Set a secret key for session management
 
-# Initialize a stack of clues (added 10 clues)
-clues_stack = deque([
-    "Clue 1: Search near the big tree.",
-    "Clue 2: Look under the bench by the fountain.",
-    "Clue 3: Check behind the library's main door.",
-    "Clue 4: Find the hidden message on the wall.",
-    "Clue 5: Explore the area by the old clock tower.",
-    "Clue 6: Look under the third step of the main stairs.",
-    "Clue 7: Behind the bulletin board in the main hall.",
-    "Clue 8: Near the bike racks at the campus entrance.",
-    "Clue 9: Check inside the small garden shed.",
-    "Clue 10: Investigate the painting near the cafeteria."
-])
+# Clue stack
+clue_stack = [
+    "Clue 1: Look under the old oak tree.",
+    "Clue 2: Check the drawer of the desk.",
+    "Clue 3: The key is behind the painting.",
+    "Clue 4: Find the book with a red cover.",
+    "Clue 5: The next clue is in the kitchen.",
+    "Clue 6: Look for the hidden compartment.",
+    "Clue 7: The clue is near the window.",
+    "Clue 8: Check the last shelf in the library.",
+    "Clue 9: The next hint is in your backpack.",
+    "Clue 10: Look where you keep your shoes."
+]
 
-# Optional: Track users (example using IP) to ensure they only get one clue
-users_received_clue = {}
+@app.route('/')
+def home():
+    clue_id = session.get('clue_id')  # Get the current clue ID from session
+    return render_template('home.html', clue_id=clue_id)
 
-@app.route('/get-clue', methods=['GET'])
+@app.route('/get_clue', methods=['POST'])
 def get_clue():
-    # Get the user's IP address
-    user_ip = request.remote_addr
+    if 'clue_id' not in session:  # Check if the user has not received a clue
+        if clue_stack:  # Ensure there are clues available
+            clue_id = random.choice(range(len(clue_stack)))  # Randomly select a clue
+            session['clue_id'] = clue_id
+            session['clue'] = clue_stack[clue_id]  # Store the clue in session
+            clue_stack.pop(clue_id)  # Remove the clue from the stack
+        else:
+            return redirect(url_for('home'))  # No clues left, redirect to home
+    return redirect(url_for('home'))
 
-    # Check if the user has already received a clue
-    if user_ip in users_received_clue:
-        previous_clue = users_received_clue[user_ip]
-        return render_template_string('''
-            <html>
-                <head>
-                    <style>
-                        body { font-family: Arial, sans-serif; background-color: #f4f4f9; text-align: center; padding: 50px; }
-                        h1 { color: #ff6347; }
-                        p { font-size: 20px; color: #333; }
-                        .warning { color: red; font-weight: bold; }
-                    </style>
-                </head>
-                <body>
-                    <h1>You have already received a clue!</h1>
-                    <p>Your clue was: <b>{{ clue }}</b></p>
-                    <p class="warning">Warning: You cannot receive a new clue!</p>
-                </body>
-            </html>
-        ''', clue=previous_clue)
-    
-    # If clues are still available
-    if clues_stack:
-        # Pop a clue from the stack and store it for this user
-        clue = clues_stack.popleft()
-        users_received_clue[user_ip] = clue
-        
-        return render_template_string('''
-            <html>
-                <head>
-                    <style>
-                        body { font-family: Arial, sans-serif; background-color: #f4f4f9; text-align: center; padding: 50px; }
-                        h1 { color: #4CAF50; }
-                        p { font-size: 20px; color: #333; }
-                    </style>
-                </head>
-                <body>
-                    <h1>Your Clue</h1>
-                    <p>Your clue is: <b>{{ clue }}</b></p>
-                </body>
-            </html>
-        ''', clue=clue)
-    else:
-        # If no clues are left
-        return render_template_string('''
-            <html>
-                <head>
-                    <style>
-                        body { font-family: Arial, sans-serif; background-color: #f4f4f9; text-align: center; padding: 50px; }
-                        h1 { color: #ff6347; }
-                        p { font-size: 20px; color: #333; }
-                    </style>
-                </head>
-                <body>
-                    <h1>No More Clues</h1>
-                    <p>Sorry, all clues have been distributed!</p>
-                </body>
-            </html>
-        ''')
-
-# Optional: Endpoint to reset clues for testing or admin purposes
-@app.route('/reset-clues', methods=['POST'])
-def reset_clues():
-    global clues_stack, users_received_clue
-    clues_stack = deque([
-        "Clue 1: Search near the big tree.",
-        "Clue 2: Look under the bench by the fountain.",
-        "Clue 3: Check behind the library's main door.",
-        "Clue 4: Find the hidden message on the wall.",
-        "Clue 5: Explore the area by the old clock tower.",
-        "Clue 6: Look under the third step of the main stairs.",
-        "Clue 7: Behind the bulletin board in the main hall.",
-        "Clue 8: Near the bike racks at the campus entrance.",
-        "Clue 9: Check inside the small garden shed.",
-        "Clue 10: Investigate the painting near the cafeteria."
-    ])
-    users_received_clue.clear()
-    return "Clues and users have been reset!"
+@app.route('/reset', methods=['POST'])
+def reset():
+    session.pop('clue_id', None)  # Remove the clue ID from session
+    session.pop('clue', None)      # Remove the clue from session
+    return redirect(url_for('home'))
 
 if __name__ == '__main__':
-    app.run(debug=True)
+    app.run(host='0.0.0.0', port=5000)  # Allow access from any IP
