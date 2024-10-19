@@ -7,10 +7,22 @@
     <style>
         table { width: 100%; border-collapse: collapse; }
         table, th, td { border: 1px solid black; padding: 10px; text-align: center; }
+        .button { padding: 10px 20px; margin: 10px; }
     </style>
 </head>
 <body>
     <h1>Yantra Search Dashboard</h1>
+    
+    <form action="/toggle_registration" method="post">
+        <button class="button" type="submit">
+            {{ 'Disable' if restrict_reregistration else 'Enable' }} Re-registration
+        </button>
+    </form>
+    
+    <form action="/reset_event" method="post">
+        <button class="button" type="submit">Reset Event</button>
+    </form>
+
     <table>
         <thead>
             <tr>

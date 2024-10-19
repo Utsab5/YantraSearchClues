@@ -24,12 +24,15 @@ total_rounds = 5
 # Assigned clues {team_id: {round_num: clue_id}}
 assigned_clues = {team_id: [] for team_id in range(1, total_teams + 1)}
 
+# Flag to toggle re-registration permission
+restrict_reregistration = True
+
 @app.route('/')
 def home():
     team_id = session.get('team_id')
     if team_id is None:
         return redirect(url_for('register'))
-    
+
     current_round = len(assigned_clues[team_id]) + 1
 
     # If all rounds are completed
@@ -37,11 +40,18 @@ def home():
         return render_template('home.html', message="You've completed all the rounds.")
 
     clue = session.get('clue')  # Get the current clue from session
+
+    if not clue:
+        current_round = len(assigned_clues[team_id])  # Show the correct round before clue retrieval
+
     return render_template('home.html', clue=clue, team_id=team_id, current_round=current_round)
 
 @app.route('/register', methods=['GET', 'POST'])
 def register():
     if request.method == 'POST':
+        if restrict_reregistration and 'team_id' in session:
+            return redirect(url_for('home'))  # Prevent re-registration if restriction is on
+
         team_id = int(request.form.get('team_id'))
         session['team_id'] = team_id
         session['clue'] = None
@@ -81,7 +91,20 @@ def get_clue():
 
 @app.route('/dashboard')
 def dashboard():
-    return render_template('dashboard.html', assigned_clues=assigned_clues, clue_stack=clue_stack)
+    return render_template('dashboard.html', assigned_clues=assigned_clues, clue_stack=clue_stack, restrict_reregistration=restrict_reregistration)
+
+@app.route('/toggle_registration', methods=['POST'])
+def toggle_registration():
+    global restrict_reregistration
+    restrict_reregistration = not restrict_reregistration  # Toggle the registration restriction
+    return redirect(url_for('dashboard'))
+
+@app.route('/reset_event', methods=['POST'])
+def reset_event():
+    global assigned_clues
+    assigned_clues = {team_id: [] for team_id in range(1, total_teams + 1)}  # Reset all clues
+    session.clear()  # Clear all sessions to allow new registrations
+    return redirect(url_for('dashboard'))
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=5000)
