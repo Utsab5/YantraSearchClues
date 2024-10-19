@@ -27,10 +27,16 @@ current_round = 0
 
 # Flag to toggle re-registration permission
 restrict_reregistration = True
-session.clear()
+# session.clear()
+
+t=0
 
 @app.route('/')
 def home():
+    
+    if t==0:
+        session.clear()
+    t=1
     
     team_id = session.get('team_id')
     if team_id is None:
