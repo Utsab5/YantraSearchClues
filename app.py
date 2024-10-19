@@ -34,17 +34,17 @@ t = 0  # Global variable to track first-time session clearing
 @app.route('/')
 def home():
     
-    global t,current_round  # Declare t as global to modify it inside this function
-
+    global t,current_round  # Declare as global to modify it inside this function
+    team_id = session.get('team_id')
     if t == 0:
-        session.clear()
+        session['team_id'] = None
         t = 1  # Set t to 1 after the first-time session clearing
 
-    team_id = session.get('team_id')
+    
     if team_id is None:
         return redirect(url_for('register'))
 
-    # current_round = len(assigned_clues[team_id]) 
+    current_round = len(assigned_clues[team_id]) +1
 
     # If all rounds are completed
     if current_round > total_rounds:
