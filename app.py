@@ -18,6 +18,20 @@ clue_stack = [
     "Clue 10: Look where you keep your shoes."
 ]
 
+# Corresponding answers for each clue
+answer_key = [
+    "Answer1",  # Answer for Clue 1
+    "Answer2",  # Answer for Clue 2
+    "Answer3",  # Answer for Clue 3
+    "Answer4",  # Answer for Clue 4
+    "Answer5",  # Answer for Clue 5
+    "Answer6",  # Answer for Clue 6
+    "Answer7",  # Answer for Clue 7
+    "Answer8",  # Answer for Clue 8
+    "Answer9",  # Answer for Clue 9
+    "Answer10"  # Answer for Clue 10
+]
+
 total_teams = 5
 total_rounds = 5
 
@@ -27,34 +41,33 @@ current_round = 0
 
 # Flag to toggle re-registration permission
 restrict_reregistration = True
-# session.clear()
-
 t = 0  # Global variable to track first-time session clearing
 
 @app.route('/')
 def home():
-    
-    global t,current_round  # Declare as global to modify it inside this function
-    team_id = session.get('team_id')
+    global t  # Declare t as global to modify it inside this function
+
     if t == 0:
-        session['team_id'] = None
+        session.clear()
         t = 1  # Set t to 1 after the first-time session clearing
 
-    
+    team_id = session.get('team_id')
     if team_id is None:
         return redirect(url_for('register'))
 
-    current_round = len(assigned_clues[team_id]) +1
+    # If the team hasn't received any clue yet (before the first round starts)
+    current_round = len(assigned_clues[team_id])
 
     # If all rounds are completed
-    if current_round > total_rounds:
-        return render_template('home.html', message="You've completed all the rounds.")
+    if current_round >= total_rounds:
+        return render_template('home.html', message="You've completed all the rounds.", team_id=team_id)
 
     clue = session.get('clue')  # Get the current clue from session
 
-    if not clue:
-        current_round = len(assigned_clues[team_id])  # Show the correct round before clue retrieval
-
+    if not clue and current_round == 0:
+        # For the first visit after registration, show "Begin Round" and "No clue yet"
+        return render_template('home.html', team_id=team_id, current_round="Begin Round", clue="No clue yet")
+    
     return render_template('home.html', clue=clue, team_id=team_id, current_round=current_round)
 
 @app.route('/register', methods=['GET', 'POST'])
@@ -65,7 +78,8 @@ def register():
 
         team_id = int(request.form.get('team_id'))
         session['team_id'] = team_id
-        session['clue'] = None
+        session['clue'] = None  # No clue initially
+        session['message'] = None  # Clear any previous message
         return redirect(url_for('home'))
     
     return render_template('register.html')
@@ -95,9 +109,32 @@ def get_clue():
         clue_id = random.choice(available_clues)  # Randomly select an available clue
         assigned_clues[team_id].append(clue_id)
         session['clue'] = clue_stack[clue_id]  # Store the clue in session
+        session['clue_id'] = clue_id  # Store clue ID to verify answer
+        session['message'] = None  # Clear any message
     else:
         session['clue'] = "No clues available."  # If somehow no clues left (unlikely)
 
+    return redirect(url_for('home'))
+
+@app.route('/submit_answer', methods=['POST'])
+def submit_answer():
+    team_id = session.get('team_id')
+
+    if team_id is None:
+        return redirect(url_for('home'))
+
+    submitted_answer = request.form.get('answer')
+    clue_id = session.get('clue_id')
+
+    if submitted_answer and clue_id is not None:
+        # Check if the submitted answer matches the correct answer for the current clue
+        if submitted_answer.strip().lower() == answer_key[clue_id].strip().lower():
+            # Move to the next round if answer is correct
+            session['message'] = "Correct! Move on to the next clue."
+            return redirect(url_for('get_clue'))
+        else:
+            session['message'] = "Incorrect answer. Please try again."
+    
     return redirect(url_for('home'))
 
 @app.route('/dashboard')
@@ -112,9 +149,10 @@ def toggle_registration():
 
 @app.route('/reset_event', methods=['POST'])
 def reset_event():
-    global assigned_clues
+    global assigned_clues, t
     assigned_clues = {team_id: [] for team_id in range(1, total_teams + 1)}  # Reset all clues
     session.clear()  # Clear all sessions to allow new registrations
+    t = 0  # Reset t so session.clear() runs again for the first time
     return redirect(url_for('dashboard'))
 
 if __name__ == '__main__':
