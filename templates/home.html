@@ -94,7 +94,7 @@
         {% endif %}
 
         <!-- Display the feedback message (correct/incorrect) -->
-        {% if session['message'] %}
+        {% if session.get('message') %}
             <p class="message {% if session['message'] == 'Correct! Move on to the next clue.' %}correct{% endif %}">
                 {{ session['message'] }}
             </p>
