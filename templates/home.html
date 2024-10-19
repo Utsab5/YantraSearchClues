@@ -3,46 +3,33 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Yantra Search - Team {{ team_id }}</title>
+    <title>Yantra Search</title>
+    <style>
+        body { font-family: Arial, sans-serif; }
+        .button { padding: 10px 20px; margin: 10px; }
+    </style>
 </head>
 <body>
-    <div class="container">
-        <h1>Welcome, Team {{ team_id }}!</h1>
+    <h1>Welcome to Yantra Search!</h1>
 
-        <!-- Display the current round or 'Begin Round' -->
-        <h2>
-            {% if current_round == 0 %}
-                Begin Round
-            {% else %}
-                Round: {{ current_round }}
-            {% endif %}
-        </h2>
-
-        <!-- Display the clue -->
-        <h3>Your Clue: {{ clue }}</h3>
-
-        <!-- If no clue is assigned, show a "Get Clue" button -->
-        {% if clue == "No clue yet" %}
-        <form action="{{ url_for('get_clue') }}" method="POST">
-            <button type="submit">Get Your Clue</button>
-        </form>
+    {% if team_id %}
+        <p><strong>Team ID:</strong> {{ team_id }}</p>
+        <p><strong>Round:</strong> {{ current_round }}</p>
+        
+        {% if clue %}
+            <h2>Your Clue:</h2>
+            <p>{{ clue }}</p>
+        {% else %}
+            <h2>No clue yet!</h2>
         {% endif %}
-
-        <!-- Display the form to submit the answer only if a clue is assigned -->
-        {% if clue and clue != "No clue yet" %}
-        <form action="{{ url_for('submit_answer') }}" method="POST">
-            <label for="answer">Enter your answer:</label>
-            <input type="text" id="answer" name="answer" placeholder="Enter your answer here" required>
-            <button type="submit">Submit Answer</button>
-        </form>
+        
+        {% if current_round <= 5 %}
+            <form action="/get_clue" method="post">
+                <button class="button" type="submit">Get Clue</button>
+            </form>
         {% endif %}
-
-        <!-- Display the feedback message (correct/incorrect) -->
-        {% if session.get('message') %}
-            <p class="message {% if session['message'] == 'Correct! Move on to the next clue.' %}correct{% endif %}">
-                {{ session['message'] }}
-            </p>
-        {% endif %}
-    </div>
+    {% else %}
+        <p>Please register your team to start.</p>
+    {% endif %}
 </body>
 </html>

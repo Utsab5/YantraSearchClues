@@ -4,99 +4,107 @@ import random
 app = Flask(__name__)
 app.secret_key = 'your_secret_key'  # Set a secret key for session management
 
-# Clue stack with their corresponding answers
+# Clue stack
 clue_stack = [
-    {"clue": "Clue 1: Look under the old oak tree.", "answer": "Answer1"},
-    {"clue": "Clue 2: Check the drawer of the desk.", "answer": "Answer2"},
-    {"clue": "Clue 3: The key is behind the painting.", "answer": "Answer3"},
-    {"clue": "Clue 4: Find the book with a red cover.", "answer": "Answer4"},
-    {"clue": "Clue 5: The next clue is in the kitchen.", "answer": "Answer5"},
-    {"clue": "Clue 6: Look for the hidden compartment.", "answer": "Answer6"},
-    {"clue": "Clue 7: The clue is near the window.", "answer": "Answer7"},
-    {"clue": "Clue 8: Check the last shelf in the library.", "answer": "Answer8"},
-    {"clue": "Clue 9: The next hint is in your backpack.", "answer": "Answer9"},
-    {"clue": "Clue 10: Look where you keep your shoes.", "answer": "Answer10"}
+    "Clue 1: Look under the old oak tree.",
+    "Clue 2: Check the drawer of the desk.",
+    "Clue 3: The key is behind the painting.",
+    "Clue 4: Find the book with a red cover.",
+    "Clue 5: The next clue is in the kitchen.",
+    "Clue 6: Look for the hidden compartment.",
+    "Clue 7: The clue is near the window.",
+    "Clue 8: Check the last shelf in the library.",
+    "Clue 9: The next hint is in your backpack.",
+    "Clue 10: Look where you keep your shoes."
 ]
 
 total_teams = 5
 total_rounds = 5
 
-# Assigned clues {team_id: [clue_id]}
+# Assigned clues {team_id: {round_num: clue_id}}
 assigned_clues = {team_id: [] for team_id in range(1, total_teams + 1)}
 
-# Home Route
+# Flag to toggle re-registration permission
+restrict_reregistration = True
+
 @app.route('/')
 def home():
-    # Check if the team is already registered
-    if 'team_id' not in session:
-        return redirect(url_for('register'))  # Redirect to register if team is not set
-    return redirect(url_for('ready'))
+    team_id = session.get('team_id')
+    if team_id is None:
+        return redirect(url_for('register'))
 
-# Register Route
+    current_round = len(assigned_clues[team_id]) + 1
+
+    # If all rounds are completed
+    if current_round > total_rounds:
+        return render_template('home.html', message="You've completed all the rounds.")
+
+    clue = session.get('clue')  # Get the current clue from session
+
+    if not clue:
+        current_round = len(assigned_clues[team_id])  # Show the correct round before clue retrieval
+
+    return render_template('home.html', clue=clue, team_id=team_id, current_round=current_round)
+
 @app.route('/register', methods=['GET', 'POST'])
 def register():
     if request.method == 'POST':
-        team_name = request.form.get('team_name')
-        session['team_id'] = team_name
-        session['current_round'] = 0  # Start at round 0
+        if restrict_reregistration and 'team_id' in session:
+            return redirect(url_for('home'))  # Prevent re-registration if restriction is on
+
+        team_id = int(request.form.get('team_id'))
+        session['team_id'] = team_id
         session['clue'] = None
-        return redirect(url_for('ready'))  # Redirect to the ready state
+        return redirect(url_for('home'))
+    
     return render_template('register.html')
 
-# Ready Route
-@app.route('/ready')
-def ready():
-    if 'team_id' not in session:
-        return redirect(url_for('register'))  # Ensure the team is registered
-    if session.get('current_round', 0) >= total_rounds:
-        return redirect(url_for('complete'))  # If rounds > total, go to completion
+@app.route('/get_clue', methods=['POST'])
+def get_clue():
+    team_id = session.get('team_id')
 
-    return render_template('ready.html')  # Display the ready screen
+    if team_id is None:
+        return redirect(url_for('home'))
 
-# Start Game / Get First Clue Route
-@app.route('/start_game', methods=['POST'])
-def start_game():
-    if 'team_id' not in session:
-        return redirect(url_for('register'))  # Ensure the team is registered
+    current_round = len(assigned_clues[team_id]) + 1
+
+    if current_round > total_rounds:
+        return redirect(url_for('home'))
+
+    # Get clues already assigned in this round to other teams
+    clues_taken_this_round = [assigned_clues[t][current_round - 1] for t in assigned_clues if len(assigned_clues[t]) >= current_round]
     
-    # Move to the first round
-    session['current_round'] += 1
-    session['clue'] = clue_stack[session['current_round'] - 1]['clue']
-    return redirect(url_for('play_round'))
+    # Get clues already assigned to this team in previous rounds
+    clues_taken_by_team = assigned_clues[team_id]
 
-# Play Round (display clue and take answer)
-@app.route('/play_round', methods=['GET', 'POST'])
-def play_round():
-    if 'team_id' not in session or 'clue' not in session:
-        return redirect(url_for('register'))
+    # Available clues for this team in this round
+    available_clues = [i for i in range(len(clue_stack)) if i not in clues_taken_this_round and i not in clues_taken_by_team]
 
-    if request.method == 'POST':
-        answer = request.form.get('answer')
-        current_round = session['current_round']
-        correct_answer = clue_stack[current_round - 1]['answer']
-        
-        if answer == correct_answer:
-            session['message'] = "Correct! Proceed to the next round."
-            if current_round < total_rounds:
-                session['current_round'] += 1
-                session['clue'] = clue_stack[current_round]['clue']  # Load next clue
-            else:
-                return redirect(url_for('complete'))  # End game when all rounds complete
-        else:
-            session['message'] = "Incorrect answer. Try again."
-    
-    return render_template('play_round.html', clue=session['clue'], message=session.get('message', ''))
+    if available_clues:
+        clue_id = random.choice(available_clues)  # Randomly select an available clue
+        assigned_clues[team_id].append(clue_id)
+        session['clue'] = clue_stack[clue_id]  # Store the clue in session
+    else:
+        session['clue'] = "No clues available."  # If somehow no clues left (unlikely)
 
-# Completion Route
-@app.route('/complete')
-def complete():
-    return render_template('game_complete.html')
+    return redirect(url_for('home'))
 
-# Debug route to clear session for testing purposes
-@app.route('/reset')
-def reset():
-    session.clear()
-    return "Session cleared!"
+@app.route('/dashboard')
+def dashboard():
+    return render_template('dashboard.html', assigned_clues=assigned_clues, clue_stack=clue_stack, restrict_reregistration=restrict_reregistration)
+
+@app.route('/toggle_registration', methods=['POST'])
+def toggle_registration():
+    global restrict_reregistration
+    restrict_reregistration = not restrict_reregistration  # Toggle the registration restriction
+    return redirect(url_for('dashboard'))
+
+@app.route('/reset_event', methods=['POST'])
+def reset_event():
+    global assigned_clues
+    assigned_clues = {team_id: [] for team_id in range(1, total_teams + 1)}  # Reset all clues
+    session.clear()  # Clear all sessions to allow new registrations
+    return redirect(url_for('dashboard'))
 
 if __name__ == '__main__':
-    app.run(debug=True)
+    app.run(host='0.0.0.0', port=5000)
