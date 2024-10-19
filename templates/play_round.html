@@ -1,0 +1,18 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Play Round</title>
+</head>
+<body>
+    <h1>Round {{ round }}</h1>
+    <h2>Clue: {{ clue }}</h2>
+    {% if message %}
+        <p>{{ message }}</p>
+    {% endif %}
+    <form action="{{ url_for('play_round') }}" method="POST">
+        <label for="answer">Answer:</label>
+        <input type="text" id="answer" name="answer" required>
+        <button type="submit">Submit Answer</button>
+    </form>
+</body>
+</html>

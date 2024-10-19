@@ -1,0 +1,13 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Ready</title>
+</head>
+<body>
+    <h1>Welcome, {{ team_name }}!</h1>
+    <p>Click below to start the game.</p>
+    <form action="{{ url_for('start_game') }}" method="POST">
+        <button type="submit">Start Game</button>
+    </form>
+</body>
+</html>
