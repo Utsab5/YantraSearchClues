@@ -34,7 +34,7 @@ t = 0  # Global variable to track first-time session clearing
 @app.route('/')
 def home():
     
-    global t  # Declare t as global to modify it inside this function
+    global t,current_round  # Declare t as global to modify it inside this function
 
     if t == 0:
         session.clear()
