@@ -29,15 +29,17 @@ current_round = 0
 restrict_reregistration = True
 # session.clear()
 
-t=0
+t = 0  # Global variable to track first-time session clearing
 
 @app.route('/')
 def home():
     
-    if t==0:
+    global t  # Declare t as global to modify it inside this function
+
+    if t == 0:
         session.clear()
-    t=1
-    
+        t = 1  # Set t to 1 after the first-time session clearing
+
     team_id = session.get('team_id')
     if team_id is None:
         return redirect(url_for('register'))
