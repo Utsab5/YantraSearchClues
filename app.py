@@ -24,89 +24,79 @@ total_rounds = 5
 # Assigned clues {team_id: [clue_id]}
 assigned_clues = {team_id: [] for team_id in range(1, total_teams + 1)}
 
-# Route: Home Page - Registration
+# Home Route
 @app.route('/')
 def home():
-    if 'team_id' in session:
-        return redirect(url_for('ready'))
-    return render_template('register.html')
+    # Check if the team is already registered
+    if 'team_id' not in session:
+        return redirect(url_for('register'))  # Redirect to register if team is not set
+    return redirect(url_for('ready'))
 
-# Route: Register Team
+# Register Route
 @app.route('/register', methods=['GET', 'POST'])
 def register():
     if request.method == 'POST':
         team_name = request.form.get('team_name')
-        session['team_id'] = random.randint(1, total_teams)
-        session['team_name'] = team_name
-        session['round'] = 0
+        session['team_id'] = team_name
+        session['current_round'] = 0  # Start at round 0
         session['clue'] = None
-        session['message'] = None
-        return redirect(url_for('ready'))
+        return redirect(url_for('ready'))  # Redirect to the ready state
     return render_template('register.html')
 
-# Route: Ready State
+# Ready Route
 @app.route('/ready')
 def ready():
-    team_name = session.get('team_name')
-    if team_name is None:
-        return redirect(url_for('home'))
-    return render_template('ready.html', team_name=team_name)
+    if 'team_id' not in session:
+        return redirect(url_for('register'))  # Ensure the team is registered
+    if session.get('current_round', 0) >= total_rounds:
+        return redirect(url_for('complete'))  # If rounds > total, go to completion
 
-# Route: Start Game
+    return render_template('ready.html')  # Display the ready screen
+
+# Start Game / Get First Clue Route
 @app.route('/start_game', methods=['POST'])
 def start_game():
-    team_id = session.get('team_id')
-    if team_id is None:
-        return redirect(url_for('home'))
-
-    session['round'] = 1
-    clue_id = random.choice([i for i in range(len(clue_stack)) if i not in assigned_clues[team_id]])
-    assigned_clues[team_id].append(clue_id)
-    session['clue'] = clue_stack[clue_id]["clue"]
+    if 'team_id' not in session:
+        return redirect(url_for('register'))  # Ensure the team is registered
+    
+    # Move to the first round
+    session['current_round'] += 1
+    session['clue'] = clue_stack[session['current_round'] - 1]['clue']
     return redirect(url_for('play_round'))
 
-# Route: Play Rounds
+# Play Round (display clue and take answer)
 @app.route('/play_round', methods=['GET', 'POST'])
 def play_round():
-    team_id = session.get('team_id')
-    if team_id is None:
-        return redirect(url_for('home'))
-
-    current_round = session.get('round')
-    if current_round > total_rounds:
-        return redirect(url_for('game_complete'))
+    if 'team_id' not in session or 'clue' not in session:
+        return redirect(url_for('register'))
 
     if request.method == 'POST':
         answer = request.form.get('answer')
-        clue_id = assigned_clues[team_id][-1]
-        correct_answer = clue_stack[clue_id]["answer"]
-
+        current_round = session['current_round']
+        correct_answer = clue_stack[current_round - 1]['answer']
+        
         if answer == correct_answer:
-            # Correct answer, move to next round
-            current_round += 1
-            session['round'] = current_round
-            session['message'] = "Correct! Moving to next round."
-            if current_round > total_rounds:
-                return redirect(url_for('game_complete'))
-            clue_id = random.choice([i for i in range(len(clue_stack)) if i not in assigned_clues[team_id]])
-            assigned_clues[team_id].append(clue_id)
-            session['clue'] = clue_stack[clue_id]["clue"]
-            return redirect(url_for('play_round'))
+            session['message'] = "Correct! Proceed to the next round."
+            if current_round < total_rounds:
+                session['current_round'] += 1
+                session['clue'] = clue_stack[current_round]['clue']  # Load next clue
+            else:
+                return redirect(url_for('complete'))  # End game when all rounds complete
         else:
-            # Wrong answer
             session['message'] = "Incorrect answer. Try again."
+    
+    return render_template('play_round.html', clue=session['clue'], message=session.get('message', ''))
 
-    return render_template('play_round.html', clue=session.get('clue'), round=current_round, message=session.get('message'))
-
-# Route: Game Complete
-@app.route('/game_complete')
-def game_complete():
+# Completion Route
+@app.route('/complete')
+def complete():
     return render_template('game_complete.html')
 
-# Route: Dashboard for admins to track progress
-@app.route('/dashboard')
-def dashboard():
-    return render_template('dashboard.html', assigned_clues=assigned_clues, clue_stack=clue_stack)
+# Debug route to clear session for testing purposes
+@app.route('/reset')
+def reset():
+    session.clear()
+    return "Session cleared!"
 
 if __name__ == '__main__':
-    app.run(host='0.0.0.0', port=5000)
+    app.run(debug=True)
