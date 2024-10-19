@@ -20,8 +20,9 @@ clue_stack = [
 
 @app.route('/')
 def home():
+    clue = session.get('clue')  # Get the current clue from session
     clue_id = session.get('clue_id')  # Get the current clue ID from session
-    return render_template('home.html', clue_id=clue_id)
+    return render_template('home.html', clue=clue, clue_id=clue_id)
 
 @app.route('/get_clue', methods=['POST'])
 def get_clue():
@@ -31,8 +32,11 @@ def get_clue():
             session['clue_id'] = clue_id
             session['clue'] = clue_stack[clue_id]  # Store the clue in session
             clue_stack.pop(clue_id)  # Remove the clue from the stack
+            print(f"Clue retrieved: {session['clue']} (ID: {session['clue_id']})")  # Debugging statement
         else:
-            return redirect(url_for('home'))  # No clues left, redirect to home
+            print("No clues left.")  # Debugging statement for no clues
+    else:
+        print("User has already received a clue.")  # Debugging statement for existing clue
     return redirect(url_for('home'))
 
 @app.route('/reset', methods=['POST'])
