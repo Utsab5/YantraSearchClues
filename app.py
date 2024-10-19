@@ -4,7 +4,12 @@ import random
 app = Flask(__name__)
 app.secret_key = 'your_secret_key'  # Set a secret key for session management
 
-# Clue stack
+# Total clues and number of teams
+total_clues = 10
+total_teams = 5
+total_rounds = 5
+
+# Clue stack (global, so every session shares this data)
 clue_stack = [
     "Clue 1: Look under the old oak tree.",
     "Clue 2: Check the drawer of the desk.",
@@ -18,32 +23,60 @@ clue_stack = [
     "Clue 10: Look where you keep your shoes."
 ]
 
+# Store assigned clues for each team and each round
+assigned_clues = {team_id: [] for team_id in range(1, total_teams + 1)}
+
 @app.route('/')
 def home():
+    team_id = session.get('team_id')
+    round_num = len(assigned_clues.get(team_id, [])) + 1
+
+    # If all rounds are done, show completion message
+    if round_num > total_rounds:
+        return render_template('home.html', message="Congratulations! You've completed all the rounds.")
+
     clue = session.get('clue')  # Get the current clue from session
-    clue_id = session.get('clue_id')  # Get the current clue ID from session
-    return render_template('home.html', clue=clue, clue_id=clue_id)
+    return render_template('home.html', clue=clue, team_id=team_id, round_num=round_num)
+
+@app.route('/register_team', methods=['POST'])
+def register_team():
+    team_id = int(request.form.get('team_id'))
+    session['team_id'] = team_id
+    session['clue'] = None
+    return redirect(url_for('home'))
 
 @app.route('/get_clue', methods=['POST'])
 def get_clue():
-    if 'clue_id' not in session:  # Check if the user has not received a clue
-        if clue_stack:  # Ensure there are clues available
-            clue_id = random.choice(range(len(clue_stack)))  # Randomly select a clue
-            session['clue_id'] = clue_id
-            session['clue'] = clue_stack[clue_id]  # Store the clue in session
-            clue_stack.pop(clue_id)  # Remove the clue from the stack
-            print(f"Clue retrieved: {session['clue']} (ID: {session['clue_id']})")  # Debugging statement
-        else:
-            print("No clues left.")  # Debugging statement for no clues
+    team_id = session.get('team_id')
+
+    if team_id is None:
+        return redirect(url_for('home'))
+
+    round_num = len(assigned_clues[team_id]) + 1
+
+    if round_num > total_rounds:
+        return redirect(url_for('home'))  # All rounds completed
+
+    available_clues = [i for i in range(len(clue_stack)) if all(i not in assigned_clues[t] for t in range(1, total_teams + 1))]
+
+    if available_clues:
+        clue_id = random.choice(available_clues)  # Randomly select a clue
+        assigned_clues[team_id].append(clue_id)
+        session['clue'] = clue_stack[clue_id]  # Store the clue in session
     else:
-        print("User has already received a clue.")  # Debugging statement for existing clue
+        session['clue'] = "No clues left for this round."  # Debugging statement for no clues
+    
     return redirect(url_for('home'))
 
 @app.route('/reset', methods=['POST'])
 def reset():
-    session.pop('clue_id', None)  # Remove the clue ID from session
-    session.pop('clue', None)      # Remove the clue from session
+    session.pop('team_id', None)
+    session.pop('clue', None)
     return redirect(url_for('home'))
 
+@app.route('/dashboard')
+def dashboard():
+    return render_template('dashboard.html', assigned_clues=assigned_clues, clue_stack=clue_stack)
+
 if __name__ == '__main__':
-    app.run(host='0.0.0.0', port=5000)  # Allow access from any IP
+    app.run(host='0.0.0.0', port=5000)

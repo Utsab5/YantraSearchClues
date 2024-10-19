@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard - Yantra Search</title>
+    <style>
+        table { width: 100%; border-collapse: collapse; }
+        table, th, td { border: 1px solid black; padding: 10px; text-align: center; }
+    </style>
+</head>
+<body>
+    <h1>Yantra Search Dashboard</h1>
+    <table>
+        <thead>
+            <tr>
+                <th>Team ID</th>
+                <th>Round 1</th>
+                <th>Round 2</th>
+                <th>Round 3</th>
+                <th>Round 4</th>
+                <th>Round 5</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for team_id, clues in assigned_clues.items() %}
+                <tr>
+                    <td>{{ team_id }}</td>
+                    {% for clue_id in clues %}
+                        <td>{{ clue_stack[clue_id] }}</td>
+                    {% endfor %}
+                    {% for i in range(5 - clues|length) %}
+                        <td>Pending</td>
+                    {% endfor %}
+                </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</body>
+</html>
