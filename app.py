@@ -43,6 +43,9 @@ def home():
 @app.route('/register', methods=['GET', 'POST'])
 def register():
     if request.method == 'POST':
+        if restrict_reregistration and 'team_id' in session:
+            return redirect(url_for('home'))  # Prevent re-registration if restriction is on
+
         team_id = int(request.form.get('team_id'))
         session['team_id'] = team_id
         session['clue'] = None
@@ -99,6 +102,23 @@ def get_clue():
         session['clue'] = "No clues available."  # If somehow no clues left (unlikely)
 
     return redirect(url_for('home'))
+
+@app.route('/dashboard')
+def dashboard():
+    return render_template('dashboard.html', assigned_clues=assigned_clues, clue_stack=clue_stack, restrict_reregistration=restrict_reregistration)
+
+@app.route('/toggle_registration', methods=['POST'])
+def toggle_registration():
+    global restrict_reregistration
+    restrict_reregistration = not restrict_reregistration  # Toggle the registration restriction
+    return redirect(url_for('dashboard'))
+
+@app.route('/reset_event', methods=['POST'])
+def reset_event():
+    global assigned_clues
+    assigned_clues = {team_id: [] for team_id in range(1, total_teams + 1)}  # Reset all clues
+    session.clear()  # Clear all sessions to allow new registrations
+    return redirect(url_for('dashboard'))
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=5000)
