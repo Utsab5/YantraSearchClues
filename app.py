@@ -67,7 +67,7 @@ def get_clue():
     if current_round > total_rounds:
         return redirect(url_for('home'))
 
-    # Get the submitted answer
+    # Get the submitted answer (if provided)
     submitted_answer = request.form.get('answer')
 
     # Get the current clue ID
@@ -77,7 +77,7 @@ def get_clue():
         current_clue_id = None
 
     # If there's a current clue, validate the answer
-    if current_clue_id is not None:
+    if current_clue_id is not None and submitted_answer:
         if not CorrectAns(submitted_answer, current_clue_id):
             session['clue'] = clue_stack[current_clue_id]["clue"]
             return render_template('home.html', clue=session['clue'], team_id=team_id, current_round=current_round, message="Wrong answer! Try again.")

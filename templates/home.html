@@ -15,12 +15,12 @@
     {% if team_id %}
         <p><strong>Team ID:</strong> {{ team_id }}</p>
         <p><strong>Round:</strong> {{ current_round }}</p>
-
+        
         {% if clue %}
             <h2>Your Clue:</h2>
             <p>{{ clue }}</p>
 
-            <!-- Input field for answer submission -->
+            <!-- Input field to submit the answer -->
             <form action="/get_clue" method="post">
                 <label for="answer">Submit your answer:</label>
                 <input type="text" id="answer" name="answer" required>
@@ -28,6 +28,12 @@
             </form>
         {% else %}
             <h2>No clue yet!</h2>
+        {% endif %}
+        
+        {% if current_round <= 5 %}
+            <form action="/get_clue" method="post">
+                <button class="button" type="submit">Get Clue</button>
+            </form>
         {% endif %}
     {% else %}
         <p>Please register your team to start.</p>
