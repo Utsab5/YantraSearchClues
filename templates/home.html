@@ -19,19 +19,14 @@
         {% if clue %}
             <h2>Your Clue:</h2>
             <p>{{ clue }}</p>
-
-            <!-- Input field to submit the answer -->
-            <form action="/get_clue" method="post">
-                <label for="answer">Submit your answer:</label>
-                <input type="text" id="answer" name="answer" required>
-                <button class="button" type="submit">Submit Answer</button>
-            </form>
         {% else %}
             <h2>No clue yet!</h2>
         {% endif %}
         
         {% if current_round <= 5 %}
             <form action="/get_clue" method="post">
+                <label for="answer">Submit your answer:</label>
+                <input type="text" id="answer" name="answer" required>
                 <button class="button" type="submit">Get Clue</button>
             </form>
         {% endif %}

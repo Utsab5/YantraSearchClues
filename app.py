@@ -24,19 +24,31 @@ total_rounds = 5
 # Assigned clues {team_id: {round_num: clue_id}}
 assigned_clues = {team_id: [] for team_id in range(1, total_teams + 1)}
 
+# Flag to toggle re-registration permission
+restrict_reregistration = True
+
+AnsGiven = 'C'##Correct
+
 @app.route('/')
 def home():
-    team_id = session.get('team_id')
-    if team_id is None:
-        return redirect(url_for('register'))
 
-    current_round = len(assigned_clues[team_id]) + 1
+    global AnsGiven
 
-    # If all rounds are completed
-    if current_round > total_rounds:
-        return render_template('home.html', message="You've completed all the rounds.")
+    if AnsGiven != 'W':
+        team_id = session.get('team_id')
+        if team_id is None:
+            return redirect(url_for('register'))
 
-    clue = session.get('clue')  # Get the current clue from session
+        current_round = len(assigned_clues[team_id]) + 1
+
+        # If all rounds are completed
+        if current_round > total_rounds:
+            return render_template('home.html', message="You've completed all the rounds.")
+
+        clue = session.get('clue')  # Get the current clue from session
+
+        if not clue:
+            current_round = len(assigned_clues[team_id])  # Show the correct round before clue retrieval
 
     return render_template('home.html', clue=clue, team_id=team_id, current_round=current_round)
 
@@ -53,13 +65,10 @@ def register():
     
     return render_template('register.html')
 
-# Function to verify if the answer is correct
-def CorrectAns(submitted_answer, clue_id):
-    correct_answer = clue_stack[clue_id]["answer"]
-    return submitted_answer.strip().lower() == correct_answer.lower()
-
 @app.route('/get_clue', methods=['POST'])
 def get_clue():
+
+    global AnsGiven
     team_id = session.get('team_id')
 
     if team_id is None:
@@ -70,20 +79,27 @@ def get_clue():
     if current_round > total_rounds:
         return redirect(url_for('home'))
 
-    # Get the submitted answer (if provided)
-    submitted_answer = request.form.get('answer')
+    # Check the answer provided by the team
+    Team_ans = request.form.get('answer')
+    print(f"ANSWER GIVEN BY TEAM++++++++++++==================={Team_ans}")
 
-    # Get the current clue ID
-    if len(assigned_clues[team_id]) > 0:
-        current_clue_id = assigned_clues[team_id][-1]
-    else:
-        current_clue_id = None
 
-    # If there's a current clue, validate the answer
-    if current_clue_id is not None and submitted_answer:
-        if not CorrectAns(submitted_answer, current_clue_id):
-            session['clue'] = clue_stack[current_clue_id]["clue"]
-            return render_template('home.html', clue=session['clue'], team_id=team_id, current_round=current_round, message="Wrong answer! Try again.")
+    # The last clue assigned in the current round
+    clue_id = assigned_clues[team_id][-1]  
+    Correct_ans = clue_stack[clue_id]['answer']
+    print(f"CORRECT ANS IS++++++++++++==================={Correct_ans}")
+
+    # Compare the answers (case-insensitive)
+    if Team_ans.lower() != Correct_ans.lower():
+        print("WWWOORRNNGG ANSWER !!!!!!!!!!!!!!!!!!!!!!!!!!!")
+        AnsGiven = 'W'
+        return redirect(url_for('home'))  # Reload the page to notify the wrong answer
+
+    # If the answer is correct
+    print("CORRECT ANSWER! Moving to the next clue.")
+    AnsGiven = 'C'  # Mark the answer as correct
+
+
 
     # Get clues already assigned in this round to other teams
     clues_taken_this_round = [assigned_clues[t][current_round - 1] for t in assigned_clues if len(assigned_clues[t]) >= current_round]
@@ -97,7 +113,7 @@ def get_clue():
     if available_clues:
         clue_id = random.choice(available_clues)  # Randomly select an available clue
         assigned_clues[team_id].append(clue_id)
-        session['clue'] = clue_stack[clue_id]["clue"]  # Store the clue in session
+        session['clue'] = clue_stack[clue_id]  # Store the clue in session
     else:
         session['clue'] = "No clues available."  # If somehow no clues left (unlikely)
 
